@@ -2,32 +2,32 @@ use std::env;
 use std::fs;
 
 
-fn apply(operator_stack: &mut Vec<char>, operand_stack: &mut Vec<i64>, start_index: usize) {
-    loop {
-        let op = operator_stack.last();
-        // println!("op: {:?}, operators: {:?}, operands: {:?}, start_index: {}", op, operator_stack, operand_stack, start_index);
+fn apply(operator_stack: &mut Vec<char>, operand_stack: &mut Vec<i64>, start_index: usize) -> bool {
+    let op = operator_stack.last();
+    // println!("op: {:?}, operators: {:?}, operands: {:?}, start_index: {}", op, operator_stack, operand_stack, start_index);
 
-        if op != Some(&'+') && op != Some(&'*') {
-            // println!("Skipping unknown operator");
-            return;
-        }
-
-        if operand_stack[start_index..].len() < 2 {
-            // println!("Not enough operands available");
-            return;
-        }
-
-        let op = operator_stack.pop().unwrap();
-
-        let op1 = operand_stack.pop().unwrap();
-        let op2 = operand_stack.pop().unwrap();
-
-        if op == '*' {
-            operand_stack.push(op1 * op2);
-        } else if op == '+' {
-            operand_stack.push(op1 + op2);
-        }
+    if op != Some(&'+') && op != Some(&'*') {
+        // println!("Skipping unknown operator");
+        return false;
     }
+
+    if operand_stack[start_index..].len() < 2 {
+        // println!("Not enough operands available");
+        return false;
+    }
+
+    let op = operator_stack.pop().unwrap();
+
+    let op1 = operand_stack.pop().unwrap();
+    let op2 = operand_stack.pop().unwrap();
+
+    if op == '*' {
+        operand_stack.push(op1 * op2);
+    } else if op == '+' {
+        operand_stack.push(op1 + op2);
+    }
+
+    return true;
 }
 
 fn eval(equation: &str) -> i64 {
@@ -42,23 +42,29 @@ fn eval(equation: &str) -> i64 {
         if ch == '(' {
             operator_stack.push(ch);
             blargh.push(operand_stack.len());
-            // println!("start_index: {:?}", blargh);
         } else if ch == ')' {
-            apply(&mut operator_stack, &mut operand_stack, *blargh.last().unwrap());
+            loop {
+                let result = apply(&mut operator_stack, &mut operand_stack, *blargh.last().unwrap());
+                if !result {
+                    break;
+                }
+            }
             // This pops off the opening paren
             let x = operator_stack.pop();
             if x.unwrap() != '(' {
                 panic!("Unexpected operator {:?}", x);
             }
             blargh.pop();
-            // println!("start_index: {:?}", blargh);
-            apply(&mut operator_stack, &mut operand_stack, *blargh.last().unwrap());
         } else if ch == '*' {
-            operator_stack.push(ch);
             apply(&mut operator_stack, &mut operand_stack, *blargh.last().unwrap());
+            operator_stack.push(ch);
         } else if ch == '+' {
+            // Evaluate previously pushed operand if it is are of lower
+            // precedence.
+            if operator_stack.last().unwrap_or(&'+') != &'*' {
+                apply(&mut operator_stack, &mut operand_stack, *blargh.last().unwrap());
+            }
             operator_stack.push(ch);
-            apply(&mut operator_stack, &mut operand_stack, *blargh.last().unwrap());
         } else if ch.is_ascii_digit() {
             let mut digit = String::new();
             digit.push(ch);
@@ -72,14 +78,20 @@ fn eval(equation: &str) -> i64 {
 
             let parsed: i64 = digit.parse::<i64>().unwrap();
             operand_stack.push(parsed);
-
-            apply(&mut operator_stack, &mut operand_stack, *blargh.last().unwrap());
         }
     }
 
-    apply(&mut operator_stack, &mut operand_stack, *blargh.last().unwrap());
+    loop {
+        let result = apply(&mut operator_stack, &mut operand_stack, *blargh.last().unwrap());
+        if !result {
+            break;
+        }
+    }
     // println!("operator stack: {:?}", operator_stack);
     // println!("operand_stack: {:?}", operand_stack);
+    if operand_stack.len() != 1 {
+        panic!("Should have just 1 operand left");
+    }
     return operand_stack.pop().unwrap();
 }
 
