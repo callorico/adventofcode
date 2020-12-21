@@ -8,38 +8,65 @@ struct Rule {
     pattern: Option<String>
 }
 
-fn matches_rule(grammar: &HashMap<u32, Rule>, message: &str, rule_id: u32) -> u32 {
+/// Returns the different # of consumed characters in the specified message
+fn matches_rule(grammar: &HashMap<u32, Rule>, message: &str, rule_id: u32) -> Vec<u32> {
     if message.is_empty() {
-        return 0;
+        return vec![0];
     }
 
     let rule: &Rule = grammar.get(&rule_id).unwrap();
+    // println!("message: {}, rule: {} {:?}", message, rule_id, rule);
+
     if rule.pattern.is_some() {
         let pat: &str = rule.pattern.as_ref().unwrap();
 
         if message.starts_with(pat) {
-            return pat.len() as u32;
+            // println!("  Matched terminal {}", pat);
+            return vec![pat.len() as u32];
         }
     } else {
+        let mut all_advances: Vec<u32> = Vec::new();
+
         for rule_set in &rule.sub_rules {
-            let mut advance: u32 = 0;
+            let mut possible_advances: Vec<u32> = vec![0];
+
             let mut all_rules_match = true;
-            for rule in rule_set {
-                let result = matches_rule(grammar, &message[advance as usize..], *rule);
-                if result == 0 {
+            for sub_rule_id in rule_set {
+                // TODO: Need to attempt next rule with all possible consumptions of
+                // previous rule
+                let mut next_advances: Vec<u32> = Vec::new();
+                for advance in &possible_advances {
+                    let result = matches_rule(grammar, &message[*advance as usize..], *sub_rule_id);
+                    // println!("  Found result: {:?}", result);
+                    if result.len() == 1 && result[0] == 0 {
+                        // No matches found
+                    } else {
+                        next_advances.extend(result.iter().map(|a| a + advance));
+                    }
+                }
+
+                if next_advances.is_empty() {
+                    // Unable to consume sub_rule_id. This rule set is invalid.
                     all_rules_match = false;
                     break;
                 }
-                advance += result;
+
+                possible_advances = next_advances;
             }
 
             if all_rules_match {
-                return advance;
+                all_advances.extend(possible_advances);
             }
+        }
+
+        if !all_advances.is_empty() {
+            // println!("Possible consumptions: {:?}", all_advances);
+            return all_advances;
         }
     }
 
-    return 0;
+    // println!("  No matches for rule {}", rule_id);
+    return vec![0];
 }
 
 fn main() {
@@ -80,9 +107,10 @@ fn main() {
     // Find input lines that match rule 0
     let mut total = 0;
     for line in line_iter.filter(|s| !s.is_empty()) {
+        // println!("**** Checking {}", line);
         let matches = matches_rule(&grammar, line, 0);
-        if matches == line.len() as u32 {
-            println!("matches: {}", line);
+        if matches.iter().any(|s| *s == line.len() as u32) {
+            println!("** matches: {}", line);
             total += 1;
         }
     }
