@@ -16,7 +16,7 @@ fn orientations(tile: &Tile) -> Vec<Tile> {
     // Generate rotations
     for _ in 0..4 {
         let mut rotated_contents: Vec<String> = Vec::new();
-        for col in 0..rotated.contents.len() {
+        for col in 0..rotated.contents[0].len() {
             let r: String = rotated.contents
                 .iter()
                 .rev()
@@ -44,13 +44,6 @@ fn orientations(tile: &Tile) -> Vec<Tile> {
     }
 
     return positions;
-}
-
-fn print_tile(tile: &Tile) {
-    println!("Tile {}:", tile.tile_id);
-    for line in &tile.contents {
-        println!("{}", line);
-    }
 }
 
 fn solve<'a>(image: &mut Vec<Vec<&'a Tile>>, remaining_tiles: &mut HashSet<u32>, tile_orientations: &'a HashMap<u32, Vec<Tile>>, row_index: usize, col_index: usize, grid_size: usize) -> bool {
@@ -139,6 +132,48 @@ fn bottom_edge(tile: &Tile) -> &str {
     return tile.contents.iter().last().unwrap();
 }
 
+fn apply_mask(merged_contents: &mut Vec<String>, monster: &Tile, row: usize, col: usize) {
+    // Verify that that mask will fit
+    if row + monster.contents.len() >= merged_contents.len() {
+        return;
+    }
+
+    if col + monster.contents[0].len() >= merged_contents[0].len() {
+        return;
+    }
+
+    let mut found_monster: bool = true;
+    let mut cells: Vec<(usize, usize)> = Vec::new();
+    for mask_row in 0..monster.contents.len() {
+        for mask_col in 0..monster.contents[0].len() {
+            if monster.contents[mask_row].chars().nth(mask_col) == Some('#') {
+                let image_row = row + mask_row;
+                let image_col = col + mask_col;
+
+                let is_in_image = match merged_contents[image_row].chars().nth(image_col) {
+                    Some('#') => true,
+                    Some('O') => true,
+                    _ => false
+                };
+                if is_in_image {
+                    cells.push((image_row, image_col));
+                } else {
+                    found_monster = false;
+                    break;
+                }
+            }
+        }
+    }
+
+    if found_monster {
+        println!("Found monster at {}, {}", row, col);
+        for (image_row, image_col) in cells.iter() {
+            let cell_range = *image_col..*image_col + 1;
+            merged_contents[*image_row].replace_range(cell_range, "O");
+        }
+    }
+}
+
 fn main() {
    let args: Vec<String> = env::args().collect();
     println!("{:?}", args);
@@ -187,9 +222,71 @@ fn main() {
         .collect();
 
     let result = solve(&mut image, &mut remaining_tiles, &tile_orientations, 0, 0, grid_size);
-    if result {
-        for row in image.iter() {
-            println!("{}", row.iter().map(|r| r.tile_id.to_string()).collect::<Vec<String>>().join(" "));
+    if !result {
+        panic!("Unable to find a solution!");
+    }
+
+    for row_index in 0..grid_size {
+        for line_index in 0..tiles[0].contents.len() {
+            let mut row_output: Vec<&str> = Vec::new();
+            for col_index in 0..grid_size {
+                row_output.push(&image[row_index][col_index].contents[line_index]);
+            }
+
+            println!("{}", row_output.join(" "));
+        }
+
+        println!("");
+    }
+
+
+    for row in image.iter() {
+        println!("{}", row.iter().map(|r| r.tile_id.to_string()).collect::<Vec<String>>().join(" "));
+    }
+
+    // Strip tile borders and generate big tile
+    let tile_size = tiles[0].contents.len();
+    let mut merged_contents: Vec<String> = Vec::new();
+    for row_index in 0..grid_size {
+        for line_index in 1..tile_size - 1 {
+            let mut merged_row: Vec<&str> = Vec::new();
+            for col_index in 0..grid_size {
+                let slice: &str = &image[row_index][col_index].contents[line_index][1..tile_size - 1];
+                merged_row.push(slice);
+            }
+
+            merged_contents.push(merged_row.join(""));
         }
     }
+
+    for line in merged_contents.iter() {
+        println!("{}", line);
+    }
+
+    let monster: Vec<String> = vec![
+        String::from("                  # "),
+        String::from("#    ##    ##    ###"),
+        String::from(" #  #  #  #  #  #   ")
+    ];
+
+    let monster_tile = Tile { tile_id: 0, contents: monster };
+
+    for rotated_monster in orientations(&monster_tile) {
+        for row_index in 0..merged_contents.len() {
+            for col_index in 0..merged_contents[0].len() {
+                apply_mask(&mut merged_contents, &rotated_monster, row_index, col_index);
+            }
+        }
+    }
+
+    for line in merged_contents.iter() {
+        println!("{}", line);
+    }
+
+    let total_not_monster: usize = merged_contents
+        .iter()
+        .map(|r| r.chars().filter(|c| c == &'#').count())
+        .sum();
+
+    println!("Total not monster cells: {}", total_not_monster);
 }
