@@ -14,7 +14,7 @@ def apply_flash(
     flashed: Set[Tuple[int, int]],
     row: int,
     col: int
-) -> int:
+):
     if grid[row][col] <= 9:
         return
 
@@ -53,7 +53,7 @@ def part2(input_path: str):
         for row in grid:
             next.append([val + 1 for val in row])
 
-        flashed = set()
+        flashed: Set[Tuple[int, int]] = set()
         for r in range(rows):
             for c in range(cols):
                 apply_flash(next, flashed, r, c)
@@ -84,7 +84,7 @@ def part1(input_path: str):
         for row in grid:
             next.append([val + 1 for val in row])
 
-        flashed = set()
+        flashed: Set[Tuple[int, int]] = set()
         for r in range(rows):
             for c in range(cols):
                 apply_flash(next, flashed, r, c)

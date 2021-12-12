@@ -3,7 +3,7 @@ from typing import List
 from collections import Counter
 
 
-def load_data(input_path: str) -> List[str]:
+def load_data(input_path: str) -> List[int]:
     with open(input_path, 'r') as f:
         return [int(c) for c in f.readline().split(',')]
 
@@ -27,12 +27,12 @@ def part1(fish: List[int]) -> int:
 
 
 def part2(fish: List[int]) -> int:
-    counts = Counter()
+    counts: Counter = Counter()
     for age in fish:
         counts[age] += 1
 
     for day in range(256):
-        new_counts = Counter()
+        new_counts: Counter = Counter()
         for age, count in counts.items():
             new_age = age - 1
             if new_age < 0:

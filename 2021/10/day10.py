@@ -75,7 +75,7 @@ def part1(input_path: str):
         '>': 25137
     }
 
-    illegal = Counter()
+    illegal: Counter = Counter()
     for line in data:
         stack = []
         for pos, symbol in enumerate(line):

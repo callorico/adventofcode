@@ -51,7 +51,7 @@ def part1(input_path: str):
     print(total)
 
 
-def basin_size(grid: List[List[str]], basins: Set[Tuple[int, int]], row: int, col: int) -> int:
+def basin_size(grid: List[List[int]], basins: Set[Tuple[int, int]], row: int, col: int) -> int:
     assert(grid[row][col] != 9)
 
     rows = len(grid)
@@ -88,7 +88,7 @@ def part2(input_path: str):
     rows = len(grid)
     cols = len(grid[0])
 
-    basins = set()
+    basins: Set[Tuple[int, int]] = set()
     basin_sizes = []
     for r in range(rows):
         for c in range(cols):

@@ -18,7 +18,7 @@ def is_valid_path(path: List[str], next_cave: str) -> bool:
     if not next_cave.islower():
         return True
 
-    counts = Counter()
+    counts: Counter = Counter()
     for p in path:
         if p.islower():
             counts[p] += 1
