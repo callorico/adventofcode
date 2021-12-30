@@ -1,6 +1,5 @@
 import sys
 import heapq
-from collections import deque
 from typing import Dict, List, Tuple, Set, ClassVar, Optional
 from dataclasses import dataclass
 
@@ -124,13 +123,15 @@ class Burrow:
             return None
 
         start_in_room = start in self.end_state
-        if start_in_room and end[1] == start[1]:
-            # Cannot stop directly outside room
-            return None
+        if start_in_room:
+            # Cannot stop directly outside any room
+            if any(end[1] == c for _, c in self.end_state):
+                return None
 
         if start_in_room and end in self.end_state:
             # For now, do not allow starting and ending in a room on the same
-            # move.
+            # move. This makes figuring out the path easier. Break this into
+            # two moves instead.
             return None
 
         if not start_in_room:
@@ -239,6 +240,7 @@ def part1(input_path: str):
             entry += 1
 
     print(f'Min energy: {winning_state.energy}')
+    winning_state.print()
 
 
 def part2(input_path: str):
@@ -278,4 +280,4 @@ def part2(input_path: str):
     winning_state.print()
 
 if __name__ == '__main__':
-    part1(sys.argv[1])
+    part2(sys.argv[1])
