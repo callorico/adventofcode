@@ -19,7 +19,7 @@ type Coordinate struct {
 	col int
 }
 
-func moveTail(head Coordinate, tail *Coordinate, tailVisits map[Coordinate]int) {
+func moveTail(head Coordinate, tail *Coordinate) {
 	if math.Abs(float64(head.row-tail.row)) < 2 && math.Abs(float64(head.col-tail.col)) < 2 {
 		return
 	}
@@ -41,8 +41,6 @@ func moveTail(head Coordinate, tail *Coordinate, tailVisits map[Coordinate]int) 
 
 	tail.row += rowDelta
 	tail.col += colDelta
-
-	tailVisits[*tail] += 1
 }
 
 func main() {
@@ -50,9 +48,16 @@ func main() {
 	check(err)
 	lines := strings.Split(string(dat), "\n")
 	var head Coordinate = Coordinate{row: 0, col: 0}
-	var tail Coordinate = Coordinate{row: 0, col: 0}
+	var rest []Coordinate
+	// Part 1
+	// var knotCount int = 1
+	// Part 2
+	var knotCount int = 9
+	for x := 0; x < knotCount; x++ {
+		rest = append(rest, Coordinate{row: 0, col: 0})
+	}
 	var tailVisits = make(map[Coordinate]int)
-	tailVisits[tail] += 1
+	tailVisits[rest[len(rest)-1]] += 1
 
 	fmt.Println(tailVisits)
 
@@ -89,12 +94,24 @@ func main() {
 		// Move the head around and let the tail follow
 		for head.row != targetRow {
 			head.row += rowDelta
-			moveTail(head, &tail, tailVisits)
+
+			prev := head
+			for idx := range rest {
+				moveTail(prev, &rest[idx])
+				prev = rest[idx]
+			}
+			tailVisits[rest[len(rest)-1]] += 1
 		}
 
 		for head.col != targetCol {
 			head.col += colDelta
-			moveTail(head, &tail, tailVisits)
+
+			prev := head
+			for idx := range rest {
+				moveTail(prev, &rest[idx])
+				prev = rest[idx]
+			}
+			tailVisits[rest[len(rest)-1]] += 1
 		}
 	}
 
