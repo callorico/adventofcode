@@ -68,7 +68,8 @@ func main() {
 	dat, err := os.ReadFile("input")
 	check(err)
 	var grid [][]int
-	var start Cell
+	// var start Cell
+	var starts []Cell
 	var end Cell
 	lines := strings.Split(string(dat), "\n")
 	for _, line := range lines {
@@ -78,8 +79,8 @@ func main() {
 		var row []int
 		for col, ch := range line {
 			var val int
-			if ch == 'S' {
-				start = Cell{row: len(grid), col: col}
+			if ch == 'S' || ch == 'a' {
+				starts = append(starts, Cell{row: len(grid), col: col})
 				val = 0
 			} else if ch == 'E' {
 				end = Cell{row: len(grid), col: col}
@@ -95,7 +96,6 @@ func main() {
 	}
 
 	var minSteps = make(map[Cell]int)
-	minSteps[start] = 0
 
 	var offsets = []Cell{
 		Cell{row: -1, col: 0},
@@ -106,11 +106,14 @@ func main() {
 
 	var cells = make(PriorityQueue, 0)
 	heap.Init(&cells)
-	item := &Item{
-		value:    start,
-		priority: 0,
+
+	for _, start := range starts {
+		item := &Item{
+			value:    start,
+			priority: 0,
+		}
+		heap.Push(&cells, item)
 	}
-	heap.Push(&cells, item)
 
 	for cells.Len() > 0 {
 		// Pop best cell to consider next
@@ -148,5 +151,5 @@ func main() {
 		}
 	}
 
-	fmt.Printf("Min steps from %v to %v is %d\n", start, end, minSteps[end])
+	fmt.Printf("Min steps to %v is %d\n", end, minSteps[end])
 }
