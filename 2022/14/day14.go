@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -41,13 +40,13 @@ func increment(start, end int) int {
 	}
 }
 
-func nextPos(current Coordinate, grid map[Coordinate]rune) Coordinate {
+func nextPos(current Coordinate, grid map[Coordinate]rune, floor int) Coordinate {
 	// Try down
 	// Then down-left
 	// Then down-right
 	for _, deltaX := range [3]int{0, -1, 1} {
 		next := Coordinate{x: current.x + deltaX, y: current.y + 1}
-		if grid[next] != 'o' && grid[next] != '#' {
+		if grid[next] != 'o' && grid[next] != '#' && next.y < floor {
 			return next
 		}
 	}
@@ -73,7 +72,6 @@ func main() {
 	check(err)
 
 	var sparseGrid = make(map[Coordinate]rune)
-	var xMin int = math.MaxInt
 	var xMax int = 0
 	var yMax int = 0
 
@@ -89,18 +87,10 @@ func main() {
 			// Fill in the rocks between start and end. Update max grid size
 			for x := start.x; x != end.x; x += increment(start.x, end.x) {
 				sparseGrid[Coordinate{x: x, y: start.y}] = '#'
-				if x > xMax {
-					xMax = x
-				} else if x < xMin {
-					xMin = x
-				}
 			}
 
 			for y := start.y; y != end.y; y += increment(start.y, end.y) {
 				sparseGrid[Coordinate{x: start.x, y: y}] = '#'
-				if y > yMax {
-					yMax = y
-				}
 			}
 			sparseGrid[end] = '#'
 
@@ -125,17 +115,15 @@ func main() {
 		// Simulate sand falling from the top
 		sandPos := Coordinate{x: 500, y: 0}
 		for true {
-			next := nextPos(sandPos, sparseGrid)
-			if next.y > yMax {
-				// Sand has fallen off the bottom
-				fmt.Printf("Sand has fallen off the bottom of the grid\n")
-				steady = true
-				break
-
-			} else if Equals(&sandPos, &next) {
+			next := nextPos(sandPos, sparseGrid, yMax+2)
+			if Equals(&sandPos, &next) {
 				// Sand is stuck
 				sparseGrid[sandPos] = 'o'
 				grains += 1
+				if next.y == 0 {
+					steady = true
+					// No room left
+				}
 				break
 			}
 
