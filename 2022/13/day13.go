@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"unicode"
@@ -26,6 +27,16 @@ func MakeIntegerPacket(value int) *Packet {
 
 func MakeListPacket() *Packet {
 	return &Packet{value: -1}
+}
+
+func MakeDividerPacket(val int) *Packet {
+	var p = MakeListPacket()
+
+	var child = MakeListPacket()
+	child.children = append(child.children, MakeIntegerPacket(val))
+
+	p.children = append(p.children, child)
+	return p
 }
 
 func IsInteger(packet *Packet) bool {
@@ -98,6 +109,10 @@ func Compare(left *Packet, right *Packet) int {
 	}
 }
 
+func Less(left *Packet, right *Packet) bool {
+	return Compare(left, right) < 0
+}
+
 func ParsePacket(value string) *Packet {
 	var runes []rune = []rune(value)
 	var index = 0
@@ -109,6 +124,7 @@ func ParsePacket(value string) *Packet {
 
 	return packet
 }
+
 func ParsePacketHelper(runes []rune, index *int) *Packet {
 	if runes[*index] != '[' {
 		panic(fmt.Sprintf("Should have been passed a list. Received: %s", string(runes)))
@@ -148,31 +164,63 @@ func main() {
 	check(err)
 
 	lines := strings.Split(string(dat), "\n")
-	packetNumber := 1
-	inOrderSum := 0
+	// packetNumber := 1
+	// inOrderSum := 0
 	i := 0
+
+	var packets []*Packet
+
 	for i < len(lines) {
 		if len(lines[i]) == 0 {
 			i += 1
 			continue
 		}
 
-		fmt.Printf("== Pair %d ==\n", packetNumber)
+		// fmt.Printf("== Pair %d ==\n", packetNumber)
 
-		var packet1 = ParsePacket(lines[i])
-		fmt.Println(ToString(packet1))
-		var packet2 = ParsePacket(lines[i+1])
-		fmt.Println(ToString(packet1))
+		// var packet1 = ParsePacket(lines[i])
+		packets = append(packets, ParsePacket(lines[i]))
+		packets = append(packets, ParsePacket(lines[i+1]))
+		// fmt.Println(ToString(packet1))
+		// var packet2 = ParsePacket(lines[i+1])
+		// fmt.Println(ToString(packet1))
 
-		if Compare(packet1, packet2) < 0 {
-			fmt.Printf("Pair %d are in the right order\n", packetNumber)
-			inOrderSum += packetNumber
-		}
+		// if Compare(packet1, packet2) < 0 {
+		// 	fmt.Printf("Pair %d are in the right order\n", packetNumber)
+		// 	inOrderSum += packetNumber
+		// }
 
 		i += 2
-		packetNumber += 1
+		// packetNumber += 1
 	}
 
-	// TODO: Sum of the pair indices that are in order
-	fmt.Printf("In order pair sum %d\n", inOrderSum)
+	// fmt.Printf("In order pair sum %d\n", inOrderSum)
+
+	var divPacket2 = MakeDividerPacket(2)
+	packets = append(packets, divPacket2)
+
+	var divPacket6 = MakeDividerPacket(6)
+	packets = append(packets, divPacket6)
+
+	fmt.Printf("# packets: %d\n", len(packets))
+
+	sort.Slice(packets, func(i, j int) bool {
+		return Compare(packets[i], packets[j]) < 0
+	})
+	fmt.Printf("# packets: %d\n", len(packets))
+
+	var packet2Index int
+	var packet6Index int
+	for packetIndex, p := range packets {
+		fmt.Println(ToString(p))
+		if Compare(p, divPacket2) == 0 {
+			packet2Index = packetIndex + 1
+		} else if Compare(p, divPacket6) == 0 {
+			packet6Index = packetIndex + 1
+		}
+	}
+
+	var result = packet2Index * packet6Index
+
+	fmt.Printf("%s: %d, %s: %d = %d\n", ToString(divPacket2), packet2Index, ToString(divPacket6), packet6Index, result)
 }
