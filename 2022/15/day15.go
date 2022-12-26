@@ -19,6 +19,24 @@ type Coordinate struct {
 	y int
 }
 
+type Range struct {
+	min int
+	max int
+}
+
+type Sensor struct {
+	position Coordinate
+	distance int
+}
+
+func Overlaps(a *Range, b *Range) bool {
+	return !(a.max < b.min || b.max < a.min)
+}
+
+func Merge(a *Range, b *Range) *Range {
+	return &Range{min: min(a.min, b.min), max: max(a.max, b.max)}
+}
+
 func ParseCoordinate(rawX, rawY string) Coordinate {
 	x, err := strconv.Atoi(rawX)
 	check(err)
@@ -26,6 +44,22 @@ func ParseCoordinate(rawX, rawY string) Coordinate {
 	check(err)
 
 	return Coordinate{x: x, y: y}
+}
+
+func min(a int, b int) int {
+	if a < b {
+		return a
+	} else {
+		return b
+	}
+}
+
+func max(a int, b int) int {
+	if a > b {
+		return a
+	} else {
+		return b
+	}
 }
 
 func abs(a int) int {
@@ -40,16 +74,65 @@ func ManhattanDistance(left *Coordinate, right *Coordinate) int {
 	return abs(left.x-right.x) + abs(left.y-right.y)
 }
 
+func BeaconPosition(sensors []Sensor, targetRow int, maxPos int) int {
+	var ranges []*Range
+
+	for _, sensor := range sensors {
+		yDelta := abs(targetRow - sensor.position.y)
+		maxXDelta := sensor.distance - yDelta
+		if maxXDelta > 0 {
+			var testMin = max(0, sensor.position.x-maxXDelta)
+			var testMax = min(maxPos, sensor.position.x+maxXDelta)
+			var r = &Range{min: testMin, max: testMax}
+			ranges = append(ranges, r)
+		}
+	}
+
+	// Merge overlapping ranges until we either have 1 or 2 ranges left
+	for true {
+		var newRanges []*Range
+
+		var r = ranges[0]
+		for i := 1; i < len(ranges); i++ {
+			if Overlaps(r, ranges[i]) {
+				r = Merge(r, ranges[i])
+			} else {
+				newRanges = append(newRanges, ranges[i])
+			}
+		}
+
+		newRanges = append(newRanges, r)
+		var reduced bool = len(newRanges) < len(ranges)
+		ranges = newRanges
+		if !reduced {
+			break
+		}
+	}
+
+	if len(ranges) != 1 && len(ranges) != 2 {
+		panic("Should be either 0 or 1 possible locations for the sensor in this row")
+	}
+
+	if len(ranges) == 1 {
+		return -1
+	}
+
+	// Find the hole in the 2 ranges
+	fmt.Printf("%v %v\n", ranges[0], ranges[1])
+	if ranges[0].max < ranges[1].min {
+		return ranges[0].max + 1
+	} else {
+		return ranges[1].max + 1
+	}
+}
+
 func main() {
 	dat, err := os.ReadFile("input")
 	check(err)
 	lines := strings.Split(string(dat), "\n")
 
 	var sensorOutput = regexp.MustCompile(`Sensor at x=([^,]+), y=([^:]+): closest beacon is at x=([^,]+), y=(.+)`)
-	var targetRow int = 2000000
-	// var targetRow = 10
-	var beacons []Coordinate
-	var noBeacon = make(map[int]bool)
+	var sensors []Sensor
 	for _, line := range lines {
 		if len(line) == 0 {
 			continue
@@ -57,34 +140,29 @@ func main() {
 
 		matches := sensorOutput.FindStringSubmatch(line)
 
-		fmt.Println(matches)
+		// fmt.Println(matches)
 		sensor := ParseCoordinate(matches[1], matches[2])
 		closestBeacon := ParseCoordinate(matches[3], matches[4])
-		beacons = append(beacons, closestBeacon)
 		distance := ManhattanDistance(&sensor, &closestBeacon)
 		fmt.Printf("%v %v %d\n", sensor, closestBeacon, distance)
 
-		yDelta := abs(targetRow - sensor.y)
-		maxXDelta := distance - yDelta
-		if maxXDelta > 0 {
-			// fmt.Printf("Finding x coords for fixed y=%d\n", targetRow)
-			var testMin = sensor.x - maxXDelta
-			// fmt.Printf("(%d,%d) -> %d\n", testMin, targetRow, ManhattanDistance(&Coordinate{x: testMin, y: targetRow}, &sensor))
-			var testMax = sensor.x + maxXDelta
-			// fmt.Printf("(%d,%d) -> %d\n", testMax, targetRow, ManhattanDistance(&Coordinate{x: testMax, y: targetRow}, &sensor))
-			for i := testMin; i <= testMax; i++ {
-				noBeacon[i] = true
-			}
+		sensors = append(sensors, Sensor{position: sensor, distance: distance})
+	}
+
+	var maxPos = 4000000
+	var x = -1
+	var targetRow int
+	for targetRow = 0; targetRow <= maxPos; targetRow++ {
+		if targetRow%1000000 == 0 {
+			fmt.Printf("Checked %d rows\n", targetRow)
+		}
+
+		x = BeaconPosition(sensors, targetRow, maxPos)
+		if x >= 0 {
+			break
 		}
 	}
 
-	for _, beacon := range beacons {
-		// fmt.Printf("%d\n", beacon.y)
-		if beacon.y == targetRow {
-			// fmt.Println("Removing beacon in target row")
-			delete(noBeacon, beacon.x)
-		}
-	}
-
-	fmt.Printf("Positions without a beacon: %d\n", len(noBeacon))
+	tuningFrequency := x*maxPos + targetRow
+	fmt.Printf("Found beacon position %d, %d: %d\n", x, targetRow, tuningFrequency)
 }
