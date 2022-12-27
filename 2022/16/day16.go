@@ -22,9 +22,11 @@ type Valve struct {
 }
 
 type State struct {
-	currentValve string
-	timeLeft     int
-	closedValves []string
+	myValve          string
+	myTimeLeft       int
+	elephantValve    string
+	elephantTimeLeft int
+	closedValves     []string
 }
 
 // An Item is something we manage in a priority queue.
@@ -85,6 +87,23 @@ func calculateMinDistances(current *Valve, dist int, valves map[string]*Valve, d
 	}
 }
 
+func max(a, b int) int {
+	if a > b {
+		return a
+	} else {
+		return b
+	}
+}
+
+func maxPossible(valves map[string]*Valve, remainingValves []string, remainingTime int) int {
+	var sum = 0
+	for _, valve := range remainingValves {
+		sum += remainingTime * valves[valve].flowRate
+	}
+
+	return sum
+}
+
 func main() {
 	dat, err := os.ReadFile("input")
 	check(err)
@@ -124,36 +143,67 @@ func main() {
 	heap.Init(&pq)
 
 	heap.Push(&pq, &Item{
-		value:    State{currentValve: "AA", timeLeft: 30, closedValves: positiveFlowRates},
+		value: State{
+			myValve:          "AA",
+			myTimeLeft:       26,
+			elephantValve:    "AA",
+			elephantTimeLeft: 26,
+			closedValves:     positiveFlowRates,
+		},
 		priority: 0,
 	})
 
 	var bestPressureSoFar int = 0
+
 	for pq.Len() > 0 {
 		item := heap.Pop(&pq).(*Item)
-		fmt.Printf("%v\n", item)
+		// fmt.Printf("%v\n", item)
 
-		for i, nextValve := range item.value.closedValves {
-			// Calculate time remaining after moving to a valve and turning it on.
-			remainingTime := item.value.timeLeft - allDistances[item.value.currentValve][nextValve] - 1
-			if remainingTime > 0 {
-				var remainingValves []string
-				remainingValves = append(remainingValves, item.value.closedValves[:i]...)
-				remainingValves = append(remainingValves, item.value.closedValves[i+1:]...)
+		for i := 0; i < len(item.value.closedValves); i++ {
+			var valve1 = item.value.closedValves[i]
+			valve1RemainingMeTime := item.value.myTimeLeft - allDistances[item.value.myValve][valve1] - 1
+			valve1MePressure := valve1RemainingMeTime * valves[valve1].flowRate
 
-				totalPressure := item.priority + remainingTime*valves[nextValve].flowRate
+			valve1RemainingElephantTime := item.value.elephantTimeLeft - allDistances[item.value.elephantValve][valve1] - 1
+			valve1ElephantPressure := valve1RemainingElephantTime * valves[valve1].flowRate
+
+			var remainingValves []string
+			remainingValves = append(remainingValves, item.value.closedValves[:i]...)
+			remainingValves = append(remainingValves, item.value.closedValves[i+1:]...)
+			remainingPressure := maxPossible(valves, remainingValves, max(valve1RemainingMeTime, valve1RemainingElephantTime))
+
+			// Don't bother continuing if there is no hope of beating the best
+			// so far
+			if valve1MePressure > 0 && item.priority+valve1MePressure+remainingPressure > bestPressureSoFar {
 				heap.Push(&pq, &Item{
 					value: State{
-						currentValve: nextValve,
-						timeLeft:     remainingTime,
-						closedValves: remainingValves},
-					priority: totalPressure,
+						myValve:          valve1,
+						myTimeLeft:       valve1RemainingMeTime,
+						elephantValve:    item.value.elephantValve,
+						elephantTimeLeft: item.value.elephantTimeLeft,
+						closedValves:     remainingValves,
+					},
+					priority: item.priority + valve1MePressure,
+				})
+			}
+
+			if valve1ElephantPressure > 0 && item.priority+valve1ElephantPressure+remainingPressure > bestPressureSoFar {
+				heap.Push(&pq, &Item{
+					value: State{
+						myValve:          item.value.myValve,
+						myTimeLeft:       item.value.myTimeLeft,
+						elephantValve:    valve1,
+						elephantTimeLeft: valve1RemainingElephantTime,
+						closedValves:     remainingValves,
+					},
+					priority: item.priority + valve1ElephantPressure,
 				})
 			}
 		}
 
 		if item.priority > bestPressureSoFar {
 			bestPressureSoFar = item.priority
+			fmt.Printf("New best discovered: %d\n", bestPressureSoFar)
 		}
 	}
 
