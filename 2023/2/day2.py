@@ -2,11 +2,16 @@ from typing import Dict
 from collections import defaultdict
 import sys
 from dataclasses import dataclass
+import functools
+import operator
 
 @dataclass
 class Game:
     id: int
     counts: Dict[str, int]
+
+    def power(self) -> int:
+        return functools.reduce(operator.mul, self.counts.values())
 
 COLORS = {"green", "red", "blue"}
 
@@ -39,10 +44,19 @@ def part1(games: list[Game]) -> int:
 
     return id_sum
 
+def part2(games: list[Game]) -> int:
+    power_sum = 0
+    for g in games:
+        print(f"{g.id} -> {g.power()}")
+        power_sum += g.power()
+
+    return power_sum
+
 
 def main(input_path):
     games = load_data(input_path)
-    print(part1(games))
+    #print(part1(games))
+    print(part2(games))
 
 
 if __name__ == "__main__":
