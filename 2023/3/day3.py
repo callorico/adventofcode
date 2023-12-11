@@ -1,4 +1,5 @@
 import sys
+from collections import defaultdict
 from typing import Tuple, Optional
 
 
@@ -9,7 +10,7 @@ def load_data(input_path: str) -> list[str]:
     return grid
 
 
-def is_adjacent_to_symbol(grid: list[str], start: Tuple, end: Tuple) -> bool:
+def update_gear_adjacencies(grid: list[str], value: int, adjacent_to_gear: dict[Tuple, list[int]], start: Tuple, end: Tuple) -> bool:
     assert start[0] == end[0], "Numbers can only appear on the same row"
     assert start[1] <= end[1], "End digit col must be after the start"
 
@@ -28,11 +29,8 @@ def is_adjacent_to_symbol(grid: list[str], start: Tuple, end: Tuple) -> bool:
                 # This is one of the digits
                 continue
 
-            if grid[r][c] != ".":
-                # print(f"Found symbol: {grid[r][c]}")
-                return True
-            
-    return False
+            if grid[r][c] == "*":
+                adjacent_to_gear[(r, c)].append(value)
 
 
 def main(input_path):
@@ -40,7 +38,8 @@ def main(input_path):
     rows: int = len(grid)
     cols: int = len(grid[0])
 
-    sum = 0
+    adjacent_to_gears: dict[Tuple, list[int]] = defaultdict(list)
+
     for r in range(rows):
         start_digit_col: Optional[int] = None
         end_digit_col: Optional[int] = None
@@ -55,15 +54,19 @@ def main(input_path):
                 if start_digit_col is not None:
                     value = int(grid[r][start_digit_col:end_digit_col + 1])
                     # print(f"{r},{c}: Parsed value: {value}")
-                    if is_adjacent_to_symbol(grid, (r, start_digit_col), (r, end_digit_col)):
-                        sum += value
+                    update_gear_adjacencies(grid, value, adjacent_to_gears, (r, start_digit_col), (r, end_digit_col))
                     start_digit_col = None
                     end_digit_col = None
 
         if start_digit_col is not None:
             value = int(grid[r][start_digit_col:end_digit_col + 1])
-            if is_adjacent_to_symbol(grid, (r, start_digit_col), (r, end_digit_col)):
-                sum += value
+            update_gear_adjacencies(grid, value, adjacent_to_gears, (r, start_digit_col), (r, end_digit_col))
+
+    sum = 0
+    for parts in adjacent_to_gears.values():
+        if len(parts) == 2:
+            gear_ratio = parts[0] * parts[1]
+            sum += gear_ratio
 
     print(sum)
 
