@@ -20,7 +20,6 @@ CARD_VALUES: dict[str, int] = {
     "A": 14,
     "K": 13,
     "Q": 12,
-    "J": 11,
     "T": 10,
     "9": 9,
     "8": 8,
@@ -29,7 +28,8 @@ CARD_VALUES: dict[str, int] = {
     "5": 5,
     "4": 4,
     "3": 3,
-    "2": 2
+    "2": 2,
+    "J": 1,
 }
 
 
@@ -39,7 +39,20 @@ class Hand:
         assert len(cards) == 5
         self.cards = cards
         counts = Counter(cards)
+        try:
+            joker_count = counts.pop("J")
+        except KeyError:
+            pass
+        else:
+            top_match = counts.most_common(1)
+            if not top_match:
+                # The all-joker edge case
+                counts["A"] = joker_count
+            else:
+                counts[top_match[0][0]] += joker_count
+
         matches = counts.most_common(2)
+
         if len(matches) == 1:
             self.hand_type = HandType.FIVE_OF_A_KIND
         else:
@@ -72,8 +85,13 @@ class Hand:
 def load_data(input_path) -> list[Tuple[Hand, int]]:
     hands = []
     with open(input_path, "r") as f:
-        for hand_raw in f:
-            cards, bid = hand_raw.strip().split(" ")
+        for line in f:
+            hand_raw = line.strip()
+            if not hand_raw:
+                continue
+
+            print(f"Raw hand: {hand_raw}")
+            cards, bid = hand_raw.split(" ")
             hands.append((Hand(cards), int(bid)))
 
     return hands
