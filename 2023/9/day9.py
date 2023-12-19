@@ -18,7 +18,7 @@ def next_value(history: list[int]) -> int:
         return 0
     
     reduced = [history[n]-history[n-1] for n in range(1, len(history))]
-    return next_value(reduced) + history[-1]
+    return history[0] - next_value(reduced)
 
 
 def main(input_path):
