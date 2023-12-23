@@ -40,13 +40,17 @@ PIPE_SHAPES = {
     "J": frozenset([NORTH, WEST]),
     "7": frozenset([SOUTH, WEST]),
     "F": frozenset([SOUTH, EAST]),
-    "S": frozenset([]),
+    "S": frozenset([NORTH, SOUTH, EAST, WEST]),
 }
+
 def can_move(grid: list[str], current_pos: Tuple[int, int], offset: Tuple[int, int]) -> bool:
+    current_pipe = grid[current_pos[0]][current_pos[1]]
     dest_pipe = grid[current_pos[0] + offset[0]][current_pos[1] + offset[1]]
 
     inverted = (-offset[0], -offset[1])
-    return inverted in PIPE_SHAPES[dest_pipe]
+    # Check whether current pipe allows movement in the offset direction and
+    # that the destination pipe accepts incoming flow from the offset direction
+    return offset in PIPE_SHAPES[current_pipe] and inverted in PIPE_SHAPES[dest_pipe]
 
 
 def print_grid(grid: list[str], distances: dict[Tuple[int, int], int]):
@@ -57,8 +61,45 @@ def print_grid(grid: list[str], distances: dict[Tuple[int, int], int]):
                 ch = grid[r][c]
             else:
                 ch = str(dist)
+                # ch = "X"
             sys.stdout.write(ch)
         sys.stdout.write("\n")
+
+
+def in_bounds(grid: list[str], pos: Tuple[int, int]) -> bool:
+    num_rows = len(grid)
+    num_cols = len(grid[0])
+
+    if pos[0] < 0 or pos[0] >= num_rows:
+        return False
+
+    if pos[1] < 0 or pos[1] >= num_cols:
+        return False
+
+    return True
+
+
+def boundary_fill(grid: list[str], filled: set[Tuple[int, int]]):
+    num_rows = len(grid)
+    num_cols = len(grid[0])
+
+    top_border = [(0, c) for c in range(num_cols)]
+    bottom_border = [(num_rows - 1, c) for c in range(num_cols)]
+    left_border = [(r, 0) for r in range(num_rows)]
+    right_border = [(r, num_cols - 1) for r in range(num_rows)]
+
+    candidates: list[Tuple[int, int]] = top_border + bottom_border + left_border + right_border
+    while candidates:
+        pos = candidates.pop()
+        if pos in filled:
+            continue
+
+        filled.add(pos)
+
+        for offset in [NORTH, SOUTH, EAST, WEST]:
+            new_pos = (pos[0] + offset[0], pos[1] + offset[1])
+            if in_bounds(grid, new_pos):
+                candidates.append(new_pos)
 
 
 def main(input_path):
@@ -79,10 +120,7 @@ def main(input_path):
                 if potential_next_pos in distances:
                     continue
 
-                if potential_next_pos[0] < 0 or potential_next_pos[0] >= len(grid):
-                    continue
-
-                if potential_next_pos[1] < 0 or potential_next_pos[1] >= len(grid[0]):
+                if not in_bounds(grid, potential_next_pos):
                     continue
 
                 if not can_move(grid, pos, offset):
@@ -98,6 +136,17 @@ def main(input_path):
 
     print_grid(grid, distances)
     print(f"Max distance was {move - 1}")
+    print(f"Loop tile count: {len(distances)}")
+
+    # Count all tiles reachable from the boundary
+    filled: set[Tuple[int, int]] = set(distances.keys())
+    # boundary_fill(grid, filled)
+    #
+    # Then enclosed tiles = total tiles - filled_tiles
+    total_tiles = len(grid) * len(grid[0])
+
+    enclosed_tiles = total_tiles - len(filled)
+    print(f"Enclosed tiles is {enclosed_tiles}")
 
 
 if __name__ == "__main__":
