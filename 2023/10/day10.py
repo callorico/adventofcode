@@ -60,8 +60,8 @@ def print_grid(grid: list[str], distances: dict[Tuple[int, int], int]):
             if dist is None:
                 ch = grid[r][c]
             else:
-                ch = str(dist)
-                # ch = "X"
+                # ch = str(dist)
+                ch = "X"
             sys.stdout.write(ch)
         sys.stdout.write("\n")
 
@@ -140,7 +140,7 @@ def main(input_path):
 
     # Count all tiles reachable from the boundary
     filled: set[Tuple[int, int]] = set(distances.keys())
-    # boundary_fill(grid, filled)
+    boundary_fill(grid, filled)
     #
     # Then enclosed tiles = total tiles - filled_tiles
     total_tiles = len(grid) * len(grid[0])
