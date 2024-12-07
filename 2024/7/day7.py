@@ -25,7 +25,11 @@ def main(input_path):
     result = 0
     for sum, operands in equations:
         print(sum, operands)
-        operator_combos = product("+*", repeat=len(operands) - 1)
+        # Part 1
+        # operators = ["+", "*"]
+        # Part 2
+        operators = ["+", "*", "||"]
+        operator_combos = product(operators, repeat=len(operands) - 1)
 
         for ops in operator_combos:
             total = operands[0]
@@ -34,6 +38,8 @@ def main(input_path):
                     total *= operand
                 elif op == "+":
                     total += operand
+                elif op == "||":
+                    total = int(str(total) + str(operand))
                 else:
                     raise Exception(f"Unknown operator {op}")
 
