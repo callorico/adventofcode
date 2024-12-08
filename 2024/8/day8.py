@@ -21,10 +21,11 @@ def print_grid(grid: List[str], antinodes: Iterable[Tuple[int, int]]):
     cols = len(grid[0])
     for r in range(rows):
         for c in range(cols):
-            if (r, c) in antinodes:
+            grid_val = grid[r][c]
+            if grid_val == "." and (r, c) in antinodes:
                 val = "#"
             else:
-                val = grid[r][c]
+                val = grid_val
             print(val, end="")
         print()
 
@@ -55,24 +56,36 @@ def main(input_path):
     print(antenna_positions)
 
     # Generate antinode positions for all antenna pairs
+
     for antenna, positions in antenna_positions.items():
         for pair in combinations(positions, 2):
             ant1, ant2 = pair
             slope = (ant1[0] - ant2[0], ant1[1] - ant2[1])
+            antinodes.add(ant1)
+            antinodes.add(ant2)
 
-            antinode1 = (ant1[0] + slope[0], ant1[1] + slope[1])
-            antinode2 = (ant2[0] - slope[0], ant2[1] - slope[1])
+            multiple = 1
+            while True:
+                still_in_bounds = False
 
-            print(pair, antinode1, antinode2)
+                antinode1 = (ant1[0] + (multiple * slope[0]), ant1[1] + (multiple * slope[1]))
+                if in_bounds(grid, antinode1):
+                    antinodes.add(antinode1)
+                    still_in_bounds = True
+                antinode2 = (ant2[0] - (multiple * slope[0]), ant2[1] - (multiple * slope[1]))
+                if in_bounds(grid, antinode2):
+                    antinodes.add(antinode2)
+                    still_in_bounds = True
 
-            for antinode in [antinode1, antinode2]:
-                if in_bounds(grid, antinode):
-                    antinodes.add(antinode)
+                if not still_in_bounds:
+                    # We've extended past the grid boundary in both directions
+                    break
 
-    total = len(antinodes)
-    print(total)
+                multiple += 1
 
     print_grid(grid, antinodes)
+    total = len(antinodes)
+    print(total)
 
 
 if __name__ == '__main__':
