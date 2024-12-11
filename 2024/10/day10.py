@@ -43,7 +43,8 @@ def count_paths(grid: List[List[int]], trailhead: Tuple[int, int]) -> int:
         for delta in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
             next_pos = move(grid, visited, head, delta)
             if next_pos:
-                visited.add(next_pos)
+                # Uncomment for part 1 solution
+                #visited.add(next_pos)
                 if grid[next_pos[0]][next_pos[1]] == 9:
                     reached_end += 1
                 else:
