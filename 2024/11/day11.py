@@ -1,5 +1,6 @@
 import sys
-from typing import List
+from typing import List, Dict, Tuple
+from collections import defaultdict
 
 
 def load_data(input_path) -> List[int]:
@@ -7,31 +8,49 @@ def load_data(input_path) -> List[int]:
         return [int(s) for s in f.read().strip().split(" ")]
 
 
+def apply_rules(stone: int) -> List[int]:
+    new_stones = []
+    if stone == 0:
+        return [1]
+
+    converted = str(stone)
+    if len(converted) % 2 == 0:
+        mid = len(converted) // 2
+        return [int(converted[:mid]), int(converted[mid:])]
+
+    return [stone * 2024]
+
+
+def num_stones(stone: int, rounds: int, cache: Dict[int, Dict[int, int]]) -> int:
+    if rounds == 0:
+        return 1
+
+    precomputed = cache.get((stone, rounds))
+    if precomputed is not None:
+        return precomputed
+
+    total = 0
+    for s in apply_rules(stone):
+        total += num_stones(s, rounds-1, cache)
+
+    cache[(stone, rounds)] = total
+
+    return total
+
+
 def main(input_path):
     stones = load_data(input_path)
-    print(stones)
 
-    for round in range(25):
-        #print(f"{round}: {stones}")
-        new_stones = []
-        for s in stones:
-            # apply rules in order
-            if s == 0:
-                new_stones.append(1)
-                continue
+    # Part 1
+    #rounds = 25
+    rounds = 75
 
-            converted = str(s)
-            if len(converted) % 2 == 0:
-                mid = len(converted) // 2
-                new_stones.append(int(converted[:mid]))
-                new_stones.append(int(converted[mid:]))
-                continue
+    cache: Dict[Tuple[int, int], int] = {}
+    total = 0
+    for s in stones:
+        total += num_stones(s, rounds, cache)
 
-            new_stones.append(s * 2024)
-
-        stones = new_stones
-
-    print(len(stones))
+    print(total)
 
 
 if __name__ == "__main__":
