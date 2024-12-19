@@ -1,6 +1,5 @@
 import sys
 from typing import List, Dict, Tuple
-from collections import defaultdict
 
 
 def load_data(input_path) -> List[int]:
@@ -9,7 +8,6 @@ def load_data(input_path) -> List[int]:
 
 
 def apply_rules(stone: int) -> List[int]:
-    new_stones = []
     if stone == 0:
         return [1]
 
@@ -21,7 +19,7 @@ def apply_rules(stone: int) -> List[int]:
     return [stone * 2024]
 
 
-def num_stones(stone: int, rounds: int, cache: Dict[int, Dict[int, int]]) -> int:
+def num_stones(stone: int, rounds: int, cache: Dict[Tuple[int, int], int]) -> int:
     if rounds == 0:
         return 1
 
