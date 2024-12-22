@@ -21,45 +21,48 @@ def parse_numbers(line: str) -> Tuple[int, int]:
 def load_data(input_path: str) -> List[GameConfig]:
     games: List[GameConfig] = []
     with open(input_path, "rt") as f:
-        try:
-            while button_a_line := next(f):
-                button_b_line = next(f)
-                target = next(f)
-                # Eat blank line between games
-                next(f)
-
-                games.append(
-                    GameConfig(
-                        a_delta=parse_numbers(button_a_line),
-                        b_delta=parse_numbers(button_b_line),
-                        target=parse_numbers(target)
-                    )
+        while button_a_line := next(f, None):
+            button_b_line = next(f)
+            target = next(f)
+            games.append(
+                GameConfig(
+                    a_delta=parse_numbers(button_a_line),
+                    b_delta=parse_numbers(button_b_line),
+                    target=parse_numbers(target)
                 )
-        except StopIteration:
-            pass
+            )
+            # Eat blank line between games
+            next(f, None)
+
 
     return games
 
 
 def main(input_path: str):
     games = load_data(input_path)
+    print(len(games))
 
-    # it costs 3 tokens to push the A button and 1 token to push the B button.
+    # Modification for part 2
+    factor = 10000000000000
+    for g in games:
+        g.target = (g.target[0] + factor, g.target[1] + factor)
+
     total_tokens = 0
     for g in games:
-        best_cost: Optional[int] = None
-        for a, b in product(range(1, 101), repeat=2):
-            x = g.a_delta[0] * a + g.b_delta[0] * b
-            y = g.a_delta[1] * a + g.b_delta[1] * b
+        print(g)
+        a_factor = (g.a_delta[0] * g.b_delta[1]) - (g.a_delta[1] * g.b_delta[0])
+        x = (g.target[0] * g.b_delta[1]) - (g.target[1] * g.b_delta[0])
 
-            if x == g.target[0] and y == g.target[1]:
-                potential_cost = 3 * a + b
-                #print(f"A button presses: {a}, B button presses: {b}")
-                if best_cost is None or potential_cost < best_cost:
-                    best_cost = potential_cost
+        a_presses, mod = divmod(x, a_factor)
+        if mod == 0:
+            # Calculate number of b presses now
+            b_presses, mod = divmod(g.target[0] - (g.a_delta[0] * a_presses), g.b_delta[0])
+            if mod == 0 and a_presses > 0 and b_presses > 0:
+                print(f"Solution: {a_presses},{b_presses}")
+                # it costs 3 tokens to push the A button and 1 token to push the B button.
+                cost = a_presses * 3 + b_presses
+                total_tokens += cost
 
-        if best_cost is not None:
-            total_tokens += best_cost
 
     print(total_tokens)
 
