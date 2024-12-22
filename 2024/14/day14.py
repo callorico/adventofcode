@@ -2,6 +2,7 @@ import sys
 import re
 from dataclasses import dataclass
 from typing import Tuple, List
+from collections import Counter
 
 
 @dataclass
@@ -26,7 +27,6 @@ def load_data(input_path: str) -> List[Robot]:
         for line in f:
             coordinates = re.findall(r"(-?\d+),(-?\d+)", line)
             if coordinates:
-                print(coordinates)
                 p, v = coordinates
                 robots.append(
                     Robot(
@@ -51,27 +51,8 @@ def print_grid(robots: List[Robot], max_x: int, max_y: int):
                 print(".", end="")
         print()
 
-def main(input_path: str):
-    robots = load_data(input_path)
-    print(robots)
 
-    # Part 1
-    max_x = 101
-    max_y = 103
-    # max_x = 11
-    # max_y = 7
-
-    print("Start")
-    print_grid(robots, max_x, max_y)
-
-    for r in robots:
-        r.move(100, max_x, max_y)
-
-    print("End")
-    print_grid(robots, max_x, max_y)
-
-    # Count robots in each quadrant
-
+def quadrants(robots: List[Robot], max_x: int, max_y: int) -> Tuple[int, int, int, int]:
     half_width = max_x // 2
     half_height = max_y // 2
 
@@ -89,8 +70,85 @@ def main(input_path: str):
             elif r.position[1] > half_height:
                 lr += 1
 
-    safety_factor = ul * ur * ll * lr
-    print(safety_factor)
+    return (ul, ur, ll, lr)
+
+
+def asymmetry(robots: List[Robot], max_x: int, max_y: int) -> int:
+    position = Counter()
+    for r in robots:
+        position[r.position] += 1
+
+    asymmetry = 0
+    half_width = max_x // 2
+
+    for pos, count in position.items():
+        distance = half_width - pos[0]
+
+        mirrored_pos = (half_width + distance, pos[1])
+        if mirrored_pos not in position:
+            asymmetry += count
+
+    return asymmetry
+
+
+
+def main(input_path: str):
+    robots = load_data(input_path)
+    # print(robots)
+
+    # Part 1
+    max_x = 101
+    max_y = 103
+    # max_x = 11
+    # max_y = 7
+
+    # Every robot covers every cell in the grid in 10403s. Calculated with:
+    # for r in robots:
+    #     positions = {r.position: 0}
+    #     seconds = 0
+    #     while True:
+    #         r.move(1, max_x, max_y)
+    #         seconds += 1
+    #         prev_seconds = positions.get(r.position)
+    #         if prev_seconds is not None:
+    #             print(f"cycled back to same position from {prev_seconds}")
+    #             break
+    #         positions[r.position] = seconds
+
+    #     print(f"{r}: {len(positions)} after {seconds}s")
+    # print(len(positions))
+
+
+    # print("Start")
+    # # print_grid(robots, max_x, max_y)
+
+    min_asymmetry = None
+    best_seconds = 0
+    seconds = 0
+    while seconds < 10403:
+        for r in robots:
+            r.move(1, max_x, max_y)
+        seconds += 1
+
+        target = asymmetry(robots, max_x, max_y)
+        if min_asymmetry is None or target < min_asymmetry:
+            min_asymmetry = target
+            best_seconds = seconds
+
+    print(f"Min asymmetry was: {min_asymmetry} at {best_seconds}")
+
+    # Robots are all back in their starting positions again
+    for r in robots:
+        r.move(best_seconds, max_x, max_y)
+
+    print_grid(robots, max_x, max_y)
+
+    # Part 1
+    # for r in robots:
+    #     r.move(100, max_x, max_y)
+    # ul, ur, ll, lr = quadrants(robots, max_x, max_y)
+    # safety_factor = ul * ur * ll * lr
+    # print(safety_factor)
 
 
 if __name__ == "__main__":
