@@ -17,35 +17,44 @@ def load_data(input_path: str) -> Tuple[List[List[str]], str]:
 
 
 def move(grid: List[List[str]], robot_pos: Tuple[int, int], delta: Tuple[int, int]) -> Tuple[int, int]:
-    round = 1
+    frontier = [robot_pos]
     shifted = []
-    row, col = robot_pos
-    can_move = False
-    while True:
-        current = grid[row][col]
-        row = robot_pos[0] + (round * delta[0])
-        col = robot_pos[1] + (round * delta[1])
-        shifted.append((row, col, current))
-        if grid[row][col] == ".":
-            # Move is possible
-            can_move = True
-            break
+    can_move = True
+    while frontier:
+        row, col = frontier.pop()
+        val = grid[row][col]
+        assert val == "@" or val == "[" or val == "]"
 
-        if grid[row][col] == "#":
-            # Move not possible
-            break
+        new_row = row + delta[0]
+        new_col = col + delta[1]
+        shifted.append((row, col, new_row, new_col, val))
 
-        round += 1
+        new_val = grid[new_row][new_col]
+        if new_val == "#":
+            # Blocked
+            can_move = False
+            break
+        elif new_val == ".":
+            # Allowed
+            pass
+        else:
+            frontier.append((new_row, new_col))
+            if new_val == "[" and delta[0] != 0:
+                frontier.append((new_row, new_col + 1))
+            elif new_val == "]" and delta[0] != 0:
+                frontier.append((new_row, new_col - 1))
+
 
     if can_move:
-        # Previous robot position is now empty
-        grid[robot_pos[0]][robot_pos[1]] = "."
+        # Clear out all original positions first
+        for old_row, old_col, _, _, _ in shifted:
+            grid[old_row][old_col] = "."
 
         # Everything else shifts over
-        for r, c, value in shifted:
-            grid[r][c] = value
+        for _, _, new_row, new_col, value in shifted:
+            grid[new_row][new_col] = value
 
-        new_robot_row, new_robot_col, _ = shifted[0]
+        _, _, new_robot_row, new_robot_col, _ = shifted[0]
         robot_pos = (new_robot_row, new_robot_col)
 
     return robot_pos
@@ -58,8 +67,29 @@ def print_grid(grid: List[List[str]]):
         print()
 
 
+def expand_grid(grid: List[List[str]]) -> List[List[str]]:
+    new_grid = []
+    for row in grid:
+        new_row = []
+        for cell in row:
+            if cell == "#":
+                new_row.extend(["#", "#"])
+            elif cell == "O":
+                new_row.extend(["[", "]"])
+            elif cell == ".":
+                new_row.extend([".", "."])
+            elif cell == "@":
+                new_row.extend(["@", "."])
+            else:
+                new_row.append(cell)
+        new_grid.append(new_row)
+
+    return new_grid
+
+
 def main(input_path: str):
     grid, moves = load_data(input_path)
+    grid = expand_grid(grid)
 
     robot_pos = None
     for r in range(len(grid)):
@@ -83,6 +113,8 @@ def main(input_path: str):
             robot_pos = move(grid, robot_pos, (1, 0))
         else:
             raise ValueError(f"Unknown move: {m}")
+        #print(f"Moved {m}")
+        #print_grid(grid)
 
     print(f"Grid after moves. Robot at: {robot_pos}")
     print_grid(grid)
@@ -91,7 +123,7 @@ def main(input_path: str):
     total_gps_coords = 0
     for r in range(len(grid)):
         for c in range(len(grid[0])):
-            if grid[r][c] == "O":
+            if grid[r][c] == "[":
                 total_gps_coords += (100 * r) + c
 
     print(total_gps_coords)
