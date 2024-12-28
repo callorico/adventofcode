@@ -94,10 +94,8 @@ OPCODES = {
     7: cdv,
 }
 
-def main(input_path: str):
-    registers, program = load_data(input_path)
-    assert len(program) % 2 == 0, "Badly formatted program. op is missing an operand"
 
+def run_program(registers: Dict[str, int], program: List[int]) -> List[int]:
     i = 0
     outputs = []
     while i < len(program):
@@ -105,18 +103,67 @@ def main(input_path: str):
         operand = program[i+1]
 
         fn = OPCODES[opcode]
+        #print(f"{fn.__name__} {operand} {registers}")
         result: SideEffect = fn(registers, operand) or SideEffect()
         if result.output is not None:
             outputs.append(result.output)
+        #print(f"  -> {result} {registers}")
 
         if result.instruction_pointer is not None:
             i = result.instruction_pointer
         else:
             i += 2
 
-    program_output = ",".join(str(v) for v in outputs)
-    print(program_output)
-    print(registers)
+    return outputs
+
+
+def main(input_path: str):
+    registers, program = load_data(input_path)
+    assert len(program) % 2 == 0, "Badly formatted program. op is missing an operand"
+
+    print(f"Target program: {program}. Length: {len(program)}")
+
+    # Through observation, a new digit is added to the output every power of 8
+    # 8: 2 digits
+    # 64: 3 digits
+    # 512 4 digits
+    #
+    # Also through observation, it appears that digits in index position i change
+    # once every pow(8, i) increments of A
+
+    # This is the smallest value of a that will produce a program output of the
+    # desired length
+    a = pow(8, len(program) - 1)
+    start = a
+    while True:
+        index = len(program) - 1
+        registers["A"] = a
+        registers["B"] = 0
+        registers["C"] = 0
+        outputs = run_program(registers, program)
+        print(f"offset: {a - start}, a: {a} -> {outputs}")
+        assert len(outputs) == len(program)
+        if outputs == program:
+            break
+
+        # Find the biggest index that does not currently match and increment
+        # by the smallest value that will cause it to update
+        while outputs[index] == program[index]:
+            index -= 1
+        assert index >= 0
+
+        increment = pow(8, index)
+
+        a += increment
+
+    print(a)
+
+    # print(registers)
+    # print(program)
+    # outputs = run_program(registers, program)
+    # program_output = ",".join(str(v) for v in outputs)
+    # print(program_output)
+    # print(registers)
 
 
 
