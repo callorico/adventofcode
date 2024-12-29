@@ -1,5 +1,5 @@
 import sys
-from typing import List, Tuple
+from typing import List, Tuple, Optional, Set
 import heapq
 
 
@@ -39,20 +39,10 @@ DIRECTIONS = (
     (1, 0),
 )
 
-def main(input_path: str):
-    coords = load_data(input_path)
 
-    # grid_size = 7
-    # falling_bytes = 12
-
-    grid_size = 71
-    falling_bytes = 1024
-
+def best_path_length(grid_size: int, obstacles: Set[Tuple[int, int]]) -> Optional[int]:
     start = (0, 0)
     end = (grid_size - 1, grid_size - 1)
-
-    obstacles = set(coords[:falling_bytes])
-    print_grid(grid_size, obstacles)
 
     frontier = [(0, start)]
     best_score = {}
@@ -85,9 +75,53 @@ def main(input_path: str):
             new_score = score + 1
             heapq.heappush(frontier, (new_score, next_pos))
 
-    print(best_score[end])
+    return best_score.get(end)
 
 
+def main(input_path: str):
+    coords = load_data(input_path)
+
+    grid_size = 71
+
+    min_falling_bytes = 1024
+    max_falling_bytes = len(coords)
+
+    while True:
+        curr_range = max_falling_bytes - min_falling_bytes
+        if curr_range == 1:
+            break
+
+        mid = min_falling_bytes + (curr_range // 2)
+        obstacles = set(coords[:mid])
+        length = best_path_length(grid_size, obstacles)
+        print(f"{min_falling_bytes} - {max_falling_bytes}, Solution: {length}")
+        if length is None:
+            max_falling_bytes = mid
+        else:
+            min_falling_bytes = mid
+
+    assert min_falling_bytes + 1 == max_falling_bytes
+
+    obstacles = set(coords[:min_falling_bytes])
+    assert best_path_length(grid_size, obstacles) is not None
+    print(f"Solution possible at {min_falling_bytes}")
+
+    obstacles = coords[:max_falling_bytes]
+    assert best_path_length(grid_size, set(obstacles)) is None
+    print(f"Solution not possible at {max_falling_bytes}")
+
+    coord = obstacles[-1]
+    print(",".join(str(i) for i in coord))
+
+    # falling_bytes = 1024
+
+    # obstacles = set(coords[:falling_bytes])
+    # # print_grid(grid_size, obstacles)
+
+    # # Find the smallest number of obstacles that create an unsolvable grid
+
+    # length = best_path_length(grid_size, set(coords))
+    # print(length)
 
 
 if __name__ == "__main__":
